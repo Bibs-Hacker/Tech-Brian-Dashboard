@@ -6,6 +6,7 @@
     <title>Tech Brian - Ultimate Tech Dashboard App</title>
     <!-- QR Code Scanner Library (jsQR) -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- NFC API Fallback (Web NFC is experimental, we'll simulate) -->
     <style>
         /* Reset and Base Styles */
         * {
@@ -23,7 +24,7 @@
             transition: background 0.5s ease;
         }
 
-        /* Splash Screen - Enhanced with Particles */
+        /* Splash Screen - FIXED: Proper auto-fade */
         #splash-screen {
             position: fixed;
             top: 0;
@@ -36,12 +37,13 @@
             justify-content: center;
             align-items: center;
             z-index: 9999;
+            opacity: 1;
             transition: opacity 1.5s ease-out;
             overflow: hidden;
+            pointer-events: none;
         }
         #splash-screen.fade-out {
             opacity: 0;
-            pointer-events: none;
         }
         .splash-logo {
             font-size: 3.5rem;
@@ -308,6 +310,38 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* NFC Reader Section */
+        #nfc-reader {
+            text-align: center;
+        }
+        #nfc-status {
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            font-weight: bold;
+        }
+        .nfc-btn {
+            background: linear-gradient(135deg, #9f7aea, #7c4dff);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin: 0.5rem;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(124,77,255,0.4);
+        }
+        .nfc-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(124,77,255,0.6);
+        }
+        .nfc-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* News Feed - Animated Items */
         .news-item {
             background: white;
@@ -319,6 +353,11 @@
             cursor: pointer;
             position: relative;
             overflow: hidden;
+            max-height: 100px;
+            transition: max-height 0.5s ease;
+        }
+        .news-item.expanded {
+            max-height: 500px;
         }
         .news-item::after {
             content: '';
@@ -387,7 +426,7 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(102,126,234,0.3);
         }
-        #code-output, #calc-output {
+        #code-output, #calc-output, #unit-output {
             background: #2d3748;
             color: #f7fafc;
             padding: 1rem;
@@ -467,7 +506,7 @@
         @media (max-width: 480px) {
             .splash-logo { font-size: 2rem; }
             .card { padding: 1.2rem; }
-            .scanner-btn { padding: 0.8rem 1.5rem; font-size: 1rem; }
+            .scanner-btn, .nfc-btn { padding: 0.8rem 1.5rem; font-size: 1rem; }
         }
 
         /* Dark Mode */
@@ -480,7 +519,9 @@
         body.dark-mode .news-item,
         body.dark-mode #qr-result,
         body.dark-mode #code-output,
-        body.dark-mode #calc-output {
+        body.dark-mode #calc-output,
+        body.dark-mode #unit-output,
+        body.dark-mode #nfc-status {
             background: rgba(45, 55, 72, 0.95);
             color: #e2e8f0;
             border: 1px solid #4a5568;
@@ -496,7 +537,7 @@
     </style>
 </head>
 <body>
-    <!-- Enhanced Splash Screen with Particles -->
+    <!-- SPLASH SCREEN - FIXED: Auto-fades after 3.5s -->
     <div id="splash-screen">
         <div class="splash-logo">Tech Brian</div>
         <div class="splash-loader"></div>
@@ -507,11 +548,12 @@
         <!-- Navigation -->
         <nav>
             <ul>
-                <li><a href="#" data-section="dashboard" class="active"><span class="nav-icon">Dashboard</span> Dashboard</a></li>
-                <li><a href="#" data-section="news"><span class="nav-icon">News</span> News</a></li>
-                <li><a href="#" data-section="qr-scanner"><span class="nav-icon">QR Scanner</span> QR Scanner</a></li>
-                <li><a href="#" data-section="tools"><span class="nav-icon">Tools</span> Tools</a></li>
-                <li><a href="#" data-section="settings"><span class="nav-icon">Settings</span> Settings</a></li>
+                <li><a href="#" data-section="dashboard" class="active">Dashboard</a></li>
+                <li><a href="#" data-section="news">News</a></li>
+                <li><a href="#" data-section="qr-scanner">QR Scanner</a></li>
+                <li><a href="#" data-section="nfc-reader">NFC Reader</a></li>
+                <li><a href="#" data-section="tools">Tools</a></li>
+                <li><a href="#" data-section="settings">Settings</a></li>
             </ul>
         </nav>
 
@@ -543,7 +585,7 @@
             <h2>Latest Tech News</h2>
             <div class="news-item" onclick="expandNews(this)">
                 <h4>AI Breakthrough in Quantum Computing</h4>
-                <p>Researchers announce new model that simulates quantum states with unprecedented accuracy. The system uses neural networks to predict quantum entanglement with 99.9% accuracy.</p>
+                <p>Researchers announce new model that simulates quantum states with 99.9% accuracy. The system uses neural networks to predict quantum entanglement.</p>
             </div>
             <div class="news-item" onclick="expandNews(this)">
                 <h4>5G Rollout Expands Globally</h4>
@@ -565,6 +607,16 @@
             <button class="scanner-btn" id="start-scan">Start Scanning</button>
             <button class="scanner-btn" id="stop-scan" style="display:none; background: linear-gradient(135deg, #f5576c, #e53e3e);">Stop Scanning</button>
             <div id="qr-result"></div>
+        </section>
+
+        <!-- NFC Reader Section -->
+        <section id="nfc-reader">
+            <h2>NFC Reader</h2>
+            <p>Hold your NFC tag near the back of your phone.</p>
+            <button class="nfc-btn" id="start-nfc">Start NFC Reading</button>
+            <button class="nfc-btn" id="stop-nfc" style="display:none; background: linear-gradient(135deg, #f5576c, #e53e3e);">Stop NFC</button>
+            <div id="nfc-status">Status: Ready</div>
+            <div id="nfc-result"></div>
         </section>
 
         <!-- Tools Section -->
@@ -625,12 +677,22 @@
     </div>
 
     <script>
-        // === SPLASH SCREEN WITH PARTICLES ===
-        window.addEventListener('load', () => {
+        // === SPLASH SCREEN - FIXED: Now auto-fades reliably ===
+        document.addEventListener('DOMContentLoaded', () => {
+            const splash = document.getElementById('splash-screen');
+            const app = document.getElementById('app-container');
+            
+            // Create particles
             createParticles();
+
+            // Auto fade after 3.5 seconds
             setTimeout(() => {
-                document.getElementById('splash-screen').classList.add('fade-out');
-                document.getElementById('app-container').classList.add('show');
+                splash.classList.add('fade-out');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    app.classList.add('show');
+                    app.style.display = 'block';
+                }, 1500); // Match CSS transition
             }, 3500);
         });
 
@@ -656,20 +718,22 @@
                 document.querySelectorAll('nav a').forEach(l => l.classList.remove('active'));
                 document.querySelectorAll('section').forEach(s => {
                     s.classList.remove('active');
-                    setTimeout(() => s.style.display = 'none', 600);
+                    s.style.display = 'none';
                 });
                 link.classList.add('active');
                 const target = document.getElementById(section);
                 target.style.display = 'block';
                 setTimeout(() => target.classList.add('active'), 50);
             });
- Swipe Navigation
+        });
+
+        // Swipe Navigation
         let touchStartX = 0;
         document.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
         document.addEventListener('touchend', e => {
             const diff = touchStartX - e.changedTouches[0].screenX;
             if (Math.abs(diff) > 80) {
-                const sections = ['dashboard', 'news', 'qr-scanner', 'tools', 'settings'];
+                const sections = ['dashboard', 'news', 'qr-scanner', 'nfc-reader', 'tools', 'settings'];
                 const current = document.querySelector('section.active');
                 const idx = sections.indexOf(current.id);
                 let nextIdx = idx + (diff > 0 ? 1 : -1);
@@ -764,6 +828,76 @@
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
         }
 
+        // === NFC READER (Web NFC API - Chrome Android only) ===
+        let nfcReader = null;
+        let nfcActive = false;
+
+        document.getElementById('start-nfc').addEventListener('click', startNFC);
+        document.getElementById('stop-nfc').addEventListener('click', stopNFC);
+
+        async function startNFC() {
+            if (!('NDEFReader' in window)) {
+                showNFCStatus('Web NFC not supported on this device/browser.', 'error');
+                return;
+            }
+
+            if (nfcActive) return;
+            nfcActive = true;
+            document.getElementById('start-nfc').style.display = 'none';
+            document.getElementById('stop-nfc').style.display = 'inline-block';
+            showNFCStatus('NFC Active - Hold tag near phone...', 'scanning');
+
+            try {
+                nfcReader = new NDEFReader();
+                await nfcReader.scan();
+
+                nfcReader.onreading = ({ message, serialNumber }) => {
+                    let text = '';
+                    for (const record of message.records) {
+                        if (record.recordType === "text") {
+                            const decoder = new TextDecoder(record.encoding);
+                            text += decoder.decode(record.data);
+                        } else if (record.recordType === "url") {
+                            text += new TextDecoder().decode(record.data);
+                        }
+                    }
+                    document.getElementById('nfc-result').innerHTML = `
+                        <strong>Tag Read:</strong><br>
+                        Serial: ${serialNumber}<br>
+                        Data: ${text || 'No text/URL'}
+                    `;
+                    vibrateSuccess();
+                    setTimeout(stopNFC, 2000);
+                };
+
+                nfcReader.onerror = () => {
+                    showNFCStatus('NFC Error - Try again.', 'error');
+                };
+            } catch (error) {
+                showNFCStatus('NFC Failed: ' + error.message, 'error');
+                stopNFC();
+            }
+        }
+
+        function stopNFC() {
+            nfcActive = false;
+            if (nfcReader) {
+                nfcReader = null;
+            }
+            document.getElementById('start-nfc').style.display = 'inline-block';
+            document.getElementById('stop-nfc').style.display = 'none';
+            showNFCStatus('Ready', 'ready');
+        }
+
+        function showNFCStatus(message, type) {
+            const status = document.getElementById('nfc-status');
+            status.textContent = 'Status: ' + message;
+            status.className = '';
+            if (type === 'scanning') status.style.color = '#4ecdc4';
+            else if (type === 'error') status.style.color = '#e53e3e';
+            else status.style.color = '#48bb78';
+        }
+
         // === TOOLS ===
         function runCode() {
             const input = document.getElementById('code-input').value;
@@ -785,7 +919,7 @@
                 output.textContent = 'Enter a valid non-negative integer.';
                 return;
             }
-            let fact = 1n; // Use BigInt for large numbers
+            let fact = 1n;
             for (let i = 2; i <= num; i++) fact *= BigInt(i);
             output.textContent = `Factorial of ${num} = ${fact}`;
         }
@@ -839,11 +973,6 @@
         // === NEWS EXPAND ===
         function expandNews(item) {
             item.classList.toggle('expanded');
-            if (item.classList.contains('expanded')) {
-                item.style.maxHeight = item.scrollHeight + 'px';
-            } else {
-                item.style.maxHeight = null;
-            }
         }
 
         // === PWA & OFFLINE ===
