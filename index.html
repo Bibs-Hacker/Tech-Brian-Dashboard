@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Brian - Ultimate Tech Dashboard App</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Splash Screen Styles */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 1s ease-out;
+            animation: fadeIn 0.5s ease-in;
+        }
+        #splash-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .splash-logo {
+            font-size: 3rem;
+            color: white;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .splash-loader {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Main App Container */
+        #app-container {
+            display: none; /* Hidden until splash fades */
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .show { display: block !important; }
+
+        /* Navigation */
+        nav {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        nav li a {
+            text-decoration: none;
+            color: #667eea;
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        nav li a:hover, nav li a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Sections */
+        section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        section.active {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card h3 { margin-bottom: 0.5rem; }
+
+        /* News Feed */
+        .news-item {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .news-item h4 { color: #667eea; margin-bottom: 0.5rem; }
+
+        /* Tools Section */
+        .tool-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        input, button {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: #5a67d8; }
+        #code-output {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+
+        /* Settings */
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: #ccc;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        .toggle.active {
+            background: #667eea;
+        }
+        .toggle.active::after {
+            transform: translateX(25px);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1rem;
+            color: white;
+            margin-top: 2rem;
+        }
+
+        /* Responsive Design for Phone */
+        @media (max-width: 768px) {
+            body { padding: 0.5rem; }
+            .splash-logo { font-size: 2rem; }
+            nav ul { flex-direction: column; align-items: center; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            section { padding: 1rem; }
+            .tool-form { gap: 0.5rem; }
+            input, button { font-size: 16px; } /* Prevents zoom on iOS */
+        }
+        @media (max-width: 480px) {
+            .splash-logo { font-size: 1.5rem; }
+            #app-container { padding: 0.5rem; }
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #ecf0f1;
+        }
+        body.dark-mode section,
+        body.dark-mode .dashboard-grid .card,
+        body.dark-mode nav {
+            background: rgba(52, 73, 94, 0.95);
+            color: #ecf0f1;
+        }
+        body.dark-mode .news-item { background: #34495e; }
+    </style>
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-logo">Tech Brian</div>
+        <div class="splash-loader"></div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container">
+        <!-- Navigation -->
+        <nav>
+            <ul>
+                <li><a href="#" data-section="dashboard" class="active">Dashboard</a></li>
+                <li><a href="#" data-section="news">News</a></li>
+                <li><a href="#" data-section="tools">Tools</a></li>
+                <li><a href="#" data-section="settings">Settings</a></li>
+            </ul>
+        </nav>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="active">
+            <h2>Tech Dashboard</h2>
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>CPU Usage</h3>
+                    <p id="cpu">45%</p>
+                </div>
+                <div class="card">
+                    <h3>Memory</h3>
+                    <p id="memory">2.5 GB</p>
+                </div>
+                <div class="card">
+                    <h3>Network Speed</h3>
+                    <p id="network">50 Mbps</p>
+                </div>
+                <div class="card">
+                    <h3>Battery</h3>
+                    <p id="battery">85%</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- News Section -->
+        <section id="news">
+            <h2>Latest Tech News</h2>
+            <div class="news-item">
+                <h4>AI Breakthrough in Quantum Computing</h4>
+                <p>Researchers announce new model that simulates quantum states with unprecedented accuracy.</p>
+            </div>
+            <div class="news-item">
+                <h4>5G Rollout Expands Globally</h4>
+                <p>More cities gain access to ultra-fast internet, promising revolution in IoT.</p>
+            </div>
+            <div class="news-item">
+                <h4>Electric Vehicles Hit Record Sales</h4>
+                <p>Tesla and rivals dominate market with sustainable tech innovations.</p>
+            </div>
+        </section>
+
+        <!-- Tools Section -->
+        <section id="tools">
+            <h2>Tech Tools</h2>
+            <div class="tool-form">
+                <input type="text" id="code-input" placeholder="Enter JS code to execute (e.g., console.log('Hello Tech Brian!'))">
+                <button onclick="runCode()">Run Code</button>
+                <div id="code-output"></div>
+            </div>
+            <div class="tool-form">
+                <input type="number" id="calc-input" placeholder="Enter number for factorial">
+                <button onclick="calcFactorial()">Calculate Factorial</button>
+                <div id="calc-output"></div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings">
+            <h2>App Settings</h2>
+            <div class="setting-item">
+                <span>Dark Mode</span>
+                <label class="toggle" id="dark-toggle" onclick="toggleDarkMode()"></label>
+            </div>
+            <div class="setting-item">
+                <span>Notifications</span>
+                <label class="toggle active" id="notif-toggle" onclick="toggleNotifications()"></label>
+            </div>
+            <div class="setting-item">
+                <span>Auto-Update News</span>
+                <input type="checkbox" id="auto-update" checked>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2025 Tech Brian App. Built for the future.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Splash Screen Fade Out
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').classList.add('fade-out');
+                document.getElementById('app-container').classList.add('show');
+            }, 3000); // 3 second delay
+        });
+
+        // Navigation
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = link.dataset.section;
+                // Remove active from all
+                document.querySelectorAll('nav a').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+                // Add active to clicked
+                link.classList.add('active');
+                document.getElementById(section).classList.add('active');
+            });
+        });
+
+        // Dashboard Updates (Simulated)
+        setInterval(() => {
+            document.getElementById('cpu').textContent = Math.floor(Math.random() * 100) + '%';
+            document.getElementById('memory').textContent = (Math.random() * 8 + 1).toFixed(1) + ' GB';
+            document.getElementById('network').textContent = (Math.random() * 100 + 10).toFixed(0) + ' Mbps';
+            document.getElementById('battery').textContent = Math.floor(Math.random() * 100) + '%';
+        }, 5000);
+
+        // Tools Functions
+        function runCode() {
+            const input = document.getElementById('code-input').value;
+            const output = document.getElementById('code-output');
+            try {
+                // Simple eval for demo (use cautiously in production)
+                const result = eval(input);
+                output.textContent = result || 'Executed successfully!';
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        function calcFactorial() {
+            const num = parseInt(document.getElementById('calc-input').value);
+            const output = document.getElementById('calc-output');
+            if (isNaN(num) || num < 0) {
+                output.textContent = 'Enter a valid non-negative integer.';
+                return;
+            }
+            let fact = 1;
+            for (let i = 2; i <= num; i++) {
+                fact *= i;
+            }
+            output.textContent = `Factorial of ${num} is ${fact}`;
+        }
+
+        // Settings
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const toggle = document.getElementById('dark-toggle');
+            toggle.classList.toggle('active');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        function toggleNotifications() {
+            const toggle = document.getElementById('notif-toggle');
+            toggle.classList.toggle('active');
+            // Simulate notification toggle
+            if (toggle.classList.contains('active')) {
+                alert('Notifications enabled!');
+            } else {
+                alert('Notifications disabled!');
+            }
+        }
+
+        // Load Dark Mode from Storage
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-toggle').classList.add('active');
+        }
+
+        // PWA-like Service Worker (Optional, for app feel)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js'); // Assume sw.js exists or ignore
+        }
+
+        // Touch-friendly for Phone
+        let touchStartX = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        document.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) { // Swipe threshold
+                const sections = document.querySelectorAll('section');
+                const current = document.querySelector('section.active');
+                const currentIndex = Array.from(sections).indexOf(current);
+                if (diff > 0 && currentIndex < sections.length - 1) {
+                    // Swipe left: next section
+                    sections[currentIndex + 1].classList.add('active');
+                    current.classList.remove('active');
+                } else if (diff < 0 && currentIndex > 0) {
+                    // Swipe right: prev section
+                    sections[currentIndex - 1].classList.add('active');
+                    current.classList.remove('active');
+                }
+            }
+        });
+    </script>
+</body>
+  </html>
